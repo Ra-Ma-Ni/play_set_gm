@@ -3,36 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turn-Based Multiplayer Game</title>
+    <title>Multiplayer Card Game</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .game-area { margin-top: 20px; }
-        .cards { display: flex; justify-content: center; gap: 10px; }
-        .card { padding: 10px; border: 1px solid black; cursor: pointer; background: lightgray; }
-        .selected { background: orange; }
-        #status { margin-top: 20px; font-weight: bold; }
+        /* Retro Background */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            background: blue;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .noise, .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+        }
+
+        .noise {
+            z-index: 400;
+            opacity: 0.8;
+        }
+
+        .noise:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://ice-creme.de/images/background-noise.png');
+            animation: noise 1s infinite alternate;
+        }
+
+        .scanlines {
+            z-index: 300;
+            opacity: 0.6;
+            animation: opacity 3s linear infinite;
+        }
+
+        .scanlines:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 51%);
+            background-size: 100% 4px;
+            animation: scanlines 0.2s linear infinite;
+        }
+
+        /* Game UI */
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .player {
+            text-align: center;
+            padding: 10px;
+            border: 2px solid white;
+            width: 20%;
+            min-width: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+        }
+
+        .current {
+            border-color: red;
+        }
+
+        .cards {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            border: 1px solid white;
+            background: gray;
+            color: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Hover effect only for the current player */
+        .current .card:hover {
+            background: orange;
+            color: black;
+        }
+
+        .pass-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            background: black;
+            color: white;
+            border: 2px solid white;
+            transition: 0.3s;
+        }
+
+        .pass-btn:hover {
+            background: white;
+            color: black;
+        }
+
+		.noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 400;
+  opacity: .8;
+  pointer-events: none;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('https://ice-creme.de/images/background-noise.png');
+    pointer-events: none;
+  }
+
+  &-moving {
+    opacity: 1;
+    z-index: 450;
+
+    &:before {
+      will-change: background-position;
+      animation: noise 1s infinite alternate;
+    }
+  }
+}
+
+.scanlines {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 300;
+  opacity: .6;
+  will-change: opacity;
+  animation: opacity 3s linear infinite;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, .5) 51%);
+    background-size: 100% 4px;
+    will-change: background, background-size;
+    animation: scanlines .2s linear infinite;
+  }
+}
+
+.intro-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  font-family: 'Press Start 2P', cursive;
+  color: $white;
+  font-size: 2rem;
+  width: 100vw;
+  height: 100vh;
+  background: #2b52ff;
+
+
+        /* Animations */
+        @keyframes noise {
+            0%, 100% {background-position: 0 0;}
+            10% {background-position: -5% -10%;}
+            20% {background-position: -15% 5%;}
+            30% {background-position: 7% -25%;}
+            40% {background-position: 20% 25%;}
+            50% {background-position: -25% 10%;}
+            60% {background-position: 15% 5%;}
+            70% {background-position: 0 15%;}
+            80% {background-position: 25% 35%;}
+            90% {background-position: -10% 10%;}
+        }
+
+        @keyframes opacity {
+            0% {opacity: .6;}
+            20% {opacity:.3;}
+            35% {opacity:.5;}
+            50% {opacity:.8;}
+            60% {opacity:.4;}
+            80% {opacity:.7;}
+            100% {opacity:.6;}
+        }
+
+        @keyframes scanlines {
+            from {
+                background-size: 100% 4px;
+            }
+            to {
+                background-size: 100% 4px;
+            }
+        }
+
     </style>
 </head>
 <body>
+    <div class="scanlines"></div>
+    <div class="noise"></div>
+
     <h1>Multiplayer Card Game</h1>
-
-    <div id="setup">
-        <input type="text" id="playerName" placeholder="Enter your name">
-        <button onclick="createGame()">Create Game</button>
-        <input type="text" id="gameCode" placeholder="Enter game code">
-        <button onclick="joinGame()">Join Game</button>
+	<center>
+    <div id="setup" >
+        <label>Number of Players (2-10):</label>
+        <input type="number" id="numPlayers" min="2" max="10">
+        <div id="objectNames"></div>
+        <button onclick="setupGame()">Start Game</button>
     </div>
 
-    <div id="game" class="game-area" style="display: none;">
-        <h2>Welcome, <span id="player"></span></h2>
-        <p>Game Code: <span id="roomId"></span></p>
-        <h3>Your Cards:</h3>
-        <div id="cards" class="cards"></div>
-        <p id="status">Waiting for turn...</p>
-        <button id="passBtn" onclick="passCard()" disabled>Pass a Card</button>
+    <div id="gameArea" style="display: none;">
+        <div class="game-area" id="playersContainer"></div>
+        <p id="status">Waiting for Player 1's turn...</p>
+        <button class="pass-btn" onclick="passCard()" disabled>Pass Selected Card</button>
     </div>
+	</center>
+    <script>
+	
+		
+        let players = [];
+        let numPlayers, numObjects;
+        let objectNames = [];
+        let turn = 0;
+        let selectedCard = null;
+        let circulatingCard = null;
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.3.1/peerjs.min.js"></script>
-    <script src="game.js"></script>
+        function generateObjectInputs() {
+            let numPlayers = parseInt(document.getElementById("numPlayers").value);
+            let container = document.getElementById("objectNames");
+            container.innerHTML = "<h3>Enter Object Names:</h3>";
+
+            numObjects = numPlayers + 1;
+            for (let i = 0; i < numObjects; i++) {
+                let input = document.createElement("input");
+                input.type = "text";
+                input.placeholder = `Object ${i + 1}`;
+                input.id = `object${i}`;
+                container.appendChild(input);
+            }
+        }
+
+        document.getElementById("numPlayers").addEventListener("change", generateObjectInputs);
+
+        function setupGame() {
+            numPlayers = parseInt(document.getElementById("numPlayers").value);
+            if (numPlayers < 2 || numPlayers > 10) return alert("Players must be between 2 and 10");
+
+            numObjects = numPlayers + 1;
+            objectNames = [];
+
+            for (let i = 0; i < numObjects; i++) {
+                let objName = document.getElementById(`object${i}`).value.trim();
+                if (!objName) return alert("Enter all object names!");
+                objectNames.push(objName);
+            }
+
+            let objects = [];
+            objectNames.forEach(name => {
+                for (let j = 0; j < 4; j++) {
+                    objects.push(name);
+                }
+            });
+
+            shuffle(objects);
+
+            players = Array.from({ length: numPlayers }, (_, i) => ({
+                id: i + 1,
+                cards: objects.splice(0, 4)
+            }));
+
+            circulatingCard = objects.pop();
+
+            document.getElementById("setup").style.display = "none";
+            document.getElementById("gameArea").style.display = "block";
+
+            createPlayerDivs();
+            startFirstTurn();
+        }
+
+        function createPlayerDivs() {
+            let container = document.getElementById("playersContainer");
+            container.innerHTML = "";
+
+            players.forEach((player, index) => {
+                let playerDiv = document.createElement("div");
+                playerDiv.classList.add("player");
+                playerDiv.id = `player${player.id}`;
+                playerDiv.innerHTML = `<h2>Player ${player.id}</h2><div class="cards" id="cards${player.id}"></div>`;
+                container.appendChild(playerDiv);
+            });
+        }
+		 function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startFirstTurn() {
+            // Player 1 starts with 5 cards (4 dealt + 1 extra)
+            players[0].cards.push(circulatingCard);
+            renderGame();
+        }
+
+        function renderGame() {
+            players.forEach((player, index) => {
+                let cardContainer = document.getElementById(`cards${player.id}`);
+                cardContainer.innerHTML = "";
+
+                player.cards.forEach((card, cardIndex) => {
+                    let cardElement = document.createElement("div");
+                    cardElement.classList.add("card");
+                    cardElement.innerText = card;
+                    cardElement.onclick = () => selectCard(index, cardIndex);
+                    cardContainer.appendChild(cardElement);
+                });
+
+                document.getElementById(`player${player.id}`).classList.toggle("current", index === turn);
+            });
+
+            document.getElementById("status").innerText = `Player ${players[turn].id}'s turn! Select a card to pass.`;
+            document.querySelector(".pass-btn").disabled = selectedCard === null;
+        }
+
+        function selectCard(playerIndex, cardIndex) {
+            if (turn !== playerIndex) return alert("Not your turn!");
+
+            selectedCard = players[playerIndex].cards[cardIndex]; // Select card
+            document.querySelector(".pass-btn").disabled = false;
+        }
+
+        function passCard() {
+            if (!selectedCard) return alert("Select a card first!");
+
+            let currentPlayer = players[turn];
+            let nextPlayerIndex = (turn + 1) % numPlayers;
+            let nextPlayer = players[nextPlayerIndex];
+
+            // Remove selected card from current player
+            let cardIndex = currentPlayer.cards.indexOf(selectedCard);
+            currentPlayer.cards.splice(cardIndex, 1);
+
+            // Pass card to next player
+            nextPlayer.cards.push(selectedCard);
+            circulatingCard = selectedCard;
+            selectedCard = null; // Clear selection
+
+            // Check win condition before discarding
+            if (checkWinCondition(nextPlayer)) return;
+
+            // Move to next turn
+            turn = nextPlayerIndex;
+            renderGame();
+        }
+
+        function checkWinCondition(player) {
+            let count = {};
+            player.cards.forEach(card => count[card] = (count[card] || 0) + 1);
+
+            for (let key in count) {
+                if (count[key] === 4) { // Winning condition: All 4 same cards
+                    document.getElementById("status").innerText = `🎉 Player ${player.id} wins with 4 "${key}" cards!`;
+                    document.querySelector(".pass-btn").disabled = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+    </script>
 </body>
 </html>
